@@ -64,6 +64,8 @@ export async function generateSignedPreKey(
   identityKeyPair: IdentityKeyPair,
   signedPreKeyId: number
 ): Promise<SignedPreKeyRecord> {
+  const { SignalProtocolStore } = await import("./signal-store");
+  
   const keyPair = IdentityKeyPair.generate();
   const signature = identityKeyPair.privateKey.sign(keyPair.publicKey.serialize());
   const timestamp = Date.now();
@@ -76,16 +78,10 @@ export async function generateSignedPreKey(
     signature
   );
 
-  // Store in IndexedDB
-  await indexedDBStore.storeSignedPreKey(uid, {
-    keyId: signedPreKeyId,
-    keyPair: {
-      pubKey: keyPair.publicKey.serialize(),
-      privKey: keyPair.privateKey.serialize(),
-    },
-    signature,
-    timestamp,
-  });
+  // Store using SignalProtocolStore
+  const store = new SignalProtocolStore(uid);
+  await store.initialize();
+  await store.storeSignedPreKey(signedPreKeyId, signedPreKeyRecord);
 
   return signedPreKeyRecord;
 }
@@ -98,7 +94,11 @@ export async function generatePreKeys(
   startId: number,
   count: number
 ): Promise<PreKeyRecord[]> {
+  const { SignalProtocolStore } = await import("./signal-store");
+  
   const preKeys: PreKeyRecord[] = [];
+  const store = new SignalProtocolStore(uid);
+  await store.initialize();
 
   for (let i = 0; i < count; i++) {
     const keyId = startId + i;
@@ -107,14 +107,8 @@ export async function generatePreKeys(
     const preKeyRecord = PreKeyRecord.new(keyId, keyPair.publicKey, keyPair.privateKey);
     preKeys.push(preKeyRecord);
 
-    // Store in IndexedDB
-    await indexedDBStore.storePreKey(uid, {
-      keyId,
-      keyPair: {
-        pubKey: keyPair.publicKey.serialize(),
-        privKey: keyPair.privateKey.serialize(),
-      },
-    });
+    // Store using SignalProtocolStore
+    await store.storePreKey(keyId, preKeyRecord);
   }
 
   return preKeys;
@@ -179,25 +173,61 @@ export async function initializeUserCrypto(uid: string): Promise<PrekeyBundle> {
 
 /**
  * Build a session with a recipient using their prekey bundle
- * For MVP: We'll use a simplified approach with direct encryption
+ * Uses Signal's SessionBuilder to establish a proper session
  */
 export async function buildSession(
   senderUid: string,
   recipientBundle: PrekeyBundle,
   recipientId: string
 ): Promise<void> {
-  // Get sender's identity key
-  const senderIdentity = await getIdentityKeyPair(senderUid);
-  if (!senderIdentity) {
-    throw new Error("Sender identity key not found. Initialize crypto first.");
-  }
+  const { SignalProtocolStore } = await import("./signal-store");
+  const { SessionBuilder, PreKeyBundle, PublicKey } = await import("@signalapp/libsignal-client");
 
-  // Mark session as established in IndexedDB
-  await indexedDBStore.storeSession(senderUid, {
-    recipientId,
-    deviceId: 1,
-    record: new ArrayBuffer(0), // Simplified for MVP
-  });
+  // Initialize store
+  const store = new SignalProtocolStore(senderUid);
+  await store.initialize();
+
+  // Deserialize recipient's public keys
+  const identityKey = PublicKey.deserialize(
+    Buffer.from(recipientBundle.identityKey, "base64")
+  );
+  const signedPreKeyPublic = PublicKey.deserialize(
+    Buffer.from(recipientBundle.signedPreKey.publicKey, "base64")
+  );
+  const signedPreKeySignature = Buffer.from(
+    recipientBundle.signedPreKey.signature,
+    "base64"
+  );
+
+  // Get one-time prekey if available
+  const oneTimePreKey = recipientBundle.oneTimePreKeys[0];
+  const oneTimePreKeyId = oneTimePreKey?.keyId ?? null;
+  const oneTimePreKeyPublic = oneTimePreKey
+    ? PublicKey.deserialize(Buffer.from(oneTimePreKey.publicKey, "base64"))
+    : null;
+
+  // Create PreKeyBundle
+  const preKeyBundle = PreKeyBundle.new(
+    recipientBundle.registrationId,
+    1, // deviceId
+    oneTimePreKeyId,
+    oneTimePreKeyPublic,
+    recipientBundle.signedPreKey.keyId,
+    signedPreKeyPublic,
+    signedPreKeySignature,
+    identityKey
+  );
+
+  // Use SessionBuilder to process the bundle
+  const builder = SessionBuilder.new(
+    store as any, // Type assertion for compatibility
+    {
+      name: recipientId,
+      deviceId: 1,
+    }
+  );
+
+  await builder.processPreKeyBundle(preKeyBundle);
 
   console.log("Session established with:", recipientId);
 }
@@ -209,102 +239,51 @@ export async function hasSession(
   uid: string,
   recipientId: string
 ): Promise<boolean> {
-  const session = await indexedDBStore.getSession(uid, recipientId, 1);
-  return session !== undefined;
-}
-
-/**
- * Derive a shared secret using ECDH
- * Uses sender's private key and recipient's public key
- */
-async function deriveSharedSecret(
-  privateKey: PrivateKey,
-  publicKey: PublicKey
-): Promise<ArrayBuffer> {
-  // Use Signal's ECDH agreement
-  const sharedSecret = privateKey.agree(publicKey);
+  const { SignalProtocolStore } = await import("./signal-store");
   
-  // Derive AES key from shared secret using HKDF
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    sharedSecret,
-    "HKDF",
-    false,
-    ["deriveKey"]
-  );
-
-  const derivedKey = await crypto.subtle.deriveKey(
-    {
-      name: "HKDF",
-      hash: "SHA-256",
-      salt: new Uint8Array(32), // Fixed salt for deterministic key derivation
-      info: new TextEncoder().encode("SecureChat-E2EE-v1"),
-    },
-    cryptoKey,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
-
-  return derivedKey;
+  const store = new SignalProtocolStore(uid);
+  await store.initialize();
+  
+  return await store.containsSession(recipientId, 1);
 }
 
 /**
- * Encrypt a message for a recipient using ECDH + AES-GCM
- * Derives a shared secret from sender's private key and recipient's public key
+ * Encrypt a message for a recipient using SessionCipher
+ * Proper Signal protocol encryption with Double Ratchet
  */
 export async function encryptMessage(
   senderUid: string,
   recipientId: string,
   plaintext: string
 ): Promise<{ type: number; body: string }> {
+  const { SignalProtocolStore } = await import("./signal-store");
+  const { SessionCipher } = await import("@signalapp/libsignal-client");
+
   try {
-    // Get sender's identity key pair
-    const senderIdentity = await getIdentityKeyPair(senderUid);
-    if (!senderIdentity) {
-      throw new Error("Sender identity not found");
-    }
+    // Initialize store
+    const store = new SignalProtocolStore(senderUid);
+    await store.initialize();
 
-    // Get recipient's public key from Firestore
-    const { doc: firestoreDoc, getDoc } = await import("firebase/firestore");
-    const { db } = await import("@/lib/firebase");
-    
-    const prekeyDoc = await getDoc(firestoreDoc(db, "users", recipientId, "crypto", "prekeys"));
-    if (!prekeyDoc.exists()) {
-      throw new Error("Recipient's public key not found");
-    }
-
-    const recipientBundle = prekeyDoc.data() as PrekeyBundle;
-    const recipientPublicKey = PublicKey.deserialize(
-      Buffer.from(recipientBundle.identityKey, "base64")
+    // Create SessionCipher
+    const cipher = SessionCipher.new(
+      store as any,
+      {
+        name: recipientId,
+        deviceId: 1,
+      }
     );
 
-    // Derive shared secret using ECDH
-    const sharedKey = await deriveSharedSecret(senderIdentity.privateKey, recipientPublicKey);
-
-    // Generate random IV for AES-GCM
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-
-    // Encrypt the plaintext
+    // Encrypt the message
     const encoder = new TextEncoder();
-    const data = encoder.encode(plaintext);
-    const encrypted = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      sharedKey,
-      data
-    );
+    const plaintextBytes = encoder.encode(plaintext);
+    const ciphertextMessage = await cipher.encrypt(Buffer.from(plaintextBytes));
 
-    // Combine IV + ciphertext (NO KEY MATERIAL)
-    const combined = new Uint8Array(iv.length + encrypted.byteLength);
-    combined.set(iv, 0);
-    combined.set(new Uint8Array(encrypted), iv.length);
-
-    // Convert to base64
-    const body = Buffer.from(combined).toString("base64");
+    // Serialize the ciphertext
+    const serialized = ciphertextMessage.serialize();
 
     return {
-      type: CiphertextMessageType.Whisper,
-      body,
+      type: ciphertextMessage.type(),
+      body: Buffer.from(serialized).toString("base64"),
     };
   } catch (error) {
     console.error("Encryption failed:", error);
@@ -313,8 +292,8 @@ export async function encryptMessage(
 }
 
 /**
- * Decrypt a message from a sender using ECDH + AES-GCM
- * Derives the same shared secret from recipient's private key and sender's public key
+ * Decrypt a message from a sender using SessionCipher
+ * Proper Signal protocol decryption with Double Ratchet
  */
 export async function decryptMessage(
   recipientUid: string,
@@ -322,47 +301,41 @@ export async function decryptMessage(
   messageType: number,
   ciphertext: string
 ): Promise<string> {
+  const { SignalProtocolStore } = await import("./signal-store");
+  const { SessionCipher, CiphertextMessageType, PreKeySignalMessage, SignalMessage } = await import("@signalapp/libsignal-client");
+
   try {
-    // Get recipient's identity key pair
-    const recipientIdentity = await getIdentityKeyPair(recipientUid);
-    if (!recipientIdentity) {
-      throw new Error("Recipient identity not found");
-    }
+    // Initialize store
+    const store = new SignalProtocolStore(recipientUid);
+    await store.initialize();
 
-    // Get sender's public key from Firestore
-    const { doc: firestoreDoc, getDoc } = await import("firebase/firestore");
-    const { db } = await import("@/lib/firebase");
-    
-    const prekeyDoc = await getDoc(firestoreDoc(db, "users", senderId, "crypto", "prekeys"));
-    if (!prekeyDoc.exists()) {
-      throw new Error("Sender's public key not found");
-    }
-
-    const senderBundle = prekeyDoc.data() as PrekeyBundle;
-    const senderPublicKey = PublicKey.deserialize(
-      Buffer.from(senderBundle.identityKey, "base64")
+    // Create SessionCipher
+    const cipher = SessionCipher.new(
+      store as any,
+      {
+        name: senderId,
+        deviceId: 1,
+      }
     );
 
-    // Derive the same shared secret using ECDH
-    const sharedKey = await deriveSharedSecret(recipientIdentity.privateKey, senderPublicKey);
+    // Deserialize ciphertext
+    const ciphertextBytes = Buffer.from(ciphertext, "base64");
 
-    // Decode base64 ciphertext
-    const combined = Buffer.from(ciphertext, "base64");
-
-    // Extract IV and encrypted data (no key material in ciphertext)
-    const iv = combined.slice(0, 12);
-    const encrypted = combined.slice(12);
-
-    // Decrypt using derived shared secret
-    const decrypted = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv },
-      sharedKey,
-      encrypted
-    );
+    // Decrypt based on message type
+    let plaintextBytes: Buffer;
+    if (messageType === CiphertextMessageType.PreKey) {
+      const message = PreKeySignalMessage.deserialize(ciphertextBytes);
+      plaintextBytes = await cipher.decryptPreKeySignalMessage(message);
+    } else if (messageType === CiphertextMessageType.Whisper) {
+      const message = SignalMessage.deserialize(ciphertextBytes);
+      plaintextBytes = await cipher.decryptSignalMessage(message);
+    } else {
+      throw new Error(`Unsupported message type: ${messageType}`);
+    }
 
     // Decode to string
     const decoder = new TextDecoder();
-    return decoder.decode(decrypted);
+    return decoder.decode(plaintextBytes);
   } catch (error) {
     console.error("Decryption failed:", error);
     throw new Error("Failed to decrypt message");
