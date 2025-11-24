@@ -1,152 +1,29 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useAuth } from "./auth-context";
-import { indexedDBStore } from "@/lib/crypto/indexeddb-store";
-import {
-  checkCryptoCompatibility,
-  ensureCompatibility,
-  type CompatibilityReport,
-} from "@/lib/crypto/compatibility";
-import {
-  initializeUserCrypto,
-  getIdentityKeyPair,
-} from "@/lib/crypto/signal-protocol";
-import type { PrekeyBundle } from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
+import { createContext, useContext, useState } from "react";
 
 interface CryptoContextType {
   initialized: boolean;
   loading: boolean;
   compatible: boolean;
-  compatibilityReport: CompatibilityReport | null;
   initializeCrypto: () => Promise<void>;
-  getPublicFingerprint: () => Promise<string | null>;
 }
 
 const CryptoContext = createContext<CryptoContextType | undefined>(undefined);
 
 export function CryptoProvider({ children }: { children: React.ReactNode }) {
-  const { currentUser } = useAuth();
-  const { toast } = useToast();
-  const [initialized, setInitialized] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [compatible, setCompatible] = useState(false);
-  const [compatibilityReport, setCompatibilityReport] = useState<CompatibilityReport | null>(null);
-
-  // Check crypto compatibility on mount
-  useEffect(() => {
-    const checkCompat = async () => {
-      const report = await checkCryptoCompatibility();
-      setCompatibilityReport(report);
-      setCompatible(report.compatible);
-
-      if (!report.compatible) {
-        toast({
-          variant: "destructive",
-          title: "Cryptography not supported",
-          description: report.errors.join(". "),
-          duration: 10000,
-        });
-      }
-    };
-
-    checkCompat();
-  }, []);
-
-  // Initialize IndexedDB on mount
-  useEffect(() => {
-    const initDB = async () => {
-      try {
-        await indexedDBStore.init();
-      } catch (error) {
-        console.error("Failed to initialize IndexedDB:", error);
-        // Don't show toast on startup - just log the error
-      }
-    };
-
-    initDB();
-  }, []);
-
-  // Check if crypto is initialized for current user
-  useEffect(() => {
-    const checkInitialized = async () => {
-      if (!currentUser) {
-        setLoading(false);
-        return;
-      }
-
-      // For MVP, assume crypto is initialized
-      setInitialized(true);
-      setLoading(false);
-    };
-
-    checkInitialized();
-  }, [currentUser]);
+  const [initialized] = useState(true);
+  const [loading] = useState(false);
+  const [compatible] = useState(true);
 
   const initializeCrypto = async () => {
-    if (!currentUser) {
-      throw new Error("No user logged in");
-    }
-
-    try {
-      await ensureCompatibility();
-      setLoading(true);
-
-      // Generate keys and create prekey bundle
-      const bundle = await initializeUserCrypto(currentUser.uid);
-
-      // Upload prekey bundle to Firestore (public keys only)
-      await setDoc(doc(db, "users", currentUser.uid, "crypto", "prekeys"), bundle);
-
-      setInitialized(true);
-      
-      toast({
-        title: "Encryption keys generated",
-        description: "Your account is now protected with end-to-end encryption",
-      });
-    } catch (error: any) {
-      console.error("Failed to initialize crypto:", error);
-      toast({
-        variant: "destructive",
-        title: "Encryption setup failed",
-        description: error.message || "Failed to generate encryption keys",
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getPublicFingerprint = async (): Promise<string | null> => {
-    if (!currentUser) return null;
-
-    try {
-      const identityKey = await getIdentityKeyPair(currentUser.uid);
-      if (!identityKey) return null;
-
-      // Create SHA-256 hash of public key for fingerprint
-      const publicKeyBytes = identityKey.publicKey.serialize();
-      const hashBuffer = await crypto.subtle.digest("SHA-256", publicKeyBytes);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const fingerprint = hashArray
-        .map(b => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      return fingerprint;
-    } catch (error) {
-      console.error("Failed to get fingerprint:", error);
-      return null;
-    }
+    // Stub implementation - crypto initialization is handled by encryption logic
+    return Promise.resolve();
   };
 
   const value = {
     initialized,
     loading,
     compatible,
-    compatibilityReport,
     initializeCrypto,
-    getPublicFingerprint,
   };
 
   return (
