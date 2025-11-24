@@ -61,11 +61,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
         await indexedDBStore.init();
       } catch (error) {
         console.error("Failed to initialize IndexedDB:", error);
-        toast({
-          variant: "destructive",
-          title: "Storage initialization failed",
-          description: "Could not initialize secure storage",
-        });
+        // Don't show toast on startup - just log the error
       }
     };
 
