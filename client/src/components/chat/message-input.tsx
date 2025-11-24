@@ -5,9 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface MessageInputProps {
   onSend: (text: string) => void;
+  disabled?: boolean;
 }
 
-export function MessageInput({ onSend }: MessageInputProps) {
+export function MessageInput({ onSend, disabled }: MessageInputProps) {
   const [message, setMessage] = useState("");
 
   const handleSend = () => {
@@ -31,13 +32,14 @@ export function MessageInput({ onSend }: MessageInputProps) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder={disabled ? "Setting up encryption..." : "Type a message..."}
           className="min-h-[60px] max-h-32 resize-none"
+          disabled={disabled}
           data-testid="input-message"
         />
         <Button
           onClick={handleSend}
-          disabled={!message.trim()}
+          disabled={!message.trim() || disabled}
           size="icon"
           className="h-[60px] w-[60px] flex-shrink-0"
           data-testid="button-send-message"

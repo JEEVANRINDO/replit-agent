@@ -179,11 +179,12 @@ export async function initializeUserCrypto(uid: string): Promise<PrekeyBundle> {
 
 /**
  * Build a session with a recipient using their prekey bundle
+ * For MVP: We'll use a simplified approach with direct encryption
  */
 export async function buildSession(
   senderUid: string,
   recipientBundle: PrekeyBundle,
-  recipientAddress: { name: string; deviceId: number }
+  recipientId: string
 ): Promise<void> {
   // Get sender's identity key
   const senderIdentity = await getIdentityKeyPair(senderUid);
@@ -191,60 +192,129 @@ export async function buildSession(
     throw new Error("Sender identity key not found. Initialize crypto first.");
   }
 
-  // Deserialize recipient's keys
-  const recipientIdentityKey = PublicKey.deserialize(
-    Buffer.from(recipientBundle.identityKey, "base64")
-  );
-  const signedPreKeyPublic = PublicKey.deserialize(
-    Buffer.from(recipientBundle.signedPreKey.publicKey, "base64")
-  );
-  const signedPreKeySignature = Buffer.from(recipientBundle.signedPreKey.signature, "base64");
+  // Mark session as established in IndexedDB
+  await indexedDBStore.storeSession(senderUid, {
+    recipientId,
+    deviceId: 1,
+    record: new ArrayBuffer(0), // Simplified for MVP
+  });
 
-  // Get one one-time prekey (use first available)
-  const oneTimePreKey = recipientBundle.oneTimePreKeys[0];
-  const oneTimePreKeyPublic = oneTimePreKey
-    ? PublicKey.deserialize(Buffer.from(oneTimePreKey.publicKey, "base64"))
-    : null;
-
-  // Create PreKeyBundle
-  const preKeyBundle = PreKeyBundle.new(
-    recipientBundle.registrationId,
-    recipientAddress.deviceId,
-    oneTimePreKey?.keyId ?? null,
-    oneTimePreKeyPublic,
-    recipientBundle.signedPreKey.keyId,
-    signedPreKeyPublic,
-    signedPreKeySignature,
-    recipientIdentityKey
-  );
-
-  // Build session (this is a simplified version - actual implementation would use SessionStore)
-  // For now, we'll store session data in IndexedDB
-  console.log("Session built with recipient:", recipientAddress.name);
+  console.log("Session established with:", recipientId);
 }
 
 /**
- * Encrypt a message for a recipient
+ * Check if a session exists with a recipient
+ */
+export async function hasSession(
+  uid: string,
+  recipientId: string
+): Promise<boolean> {
+  const session = await indexedDBStore.getSession(uid, recipientId, 1);
+  return session !== undefined;
+}
+
+/**
+ * Derive a shared secret using ECDH
+ * Uses sender's private key and recipient's public key
+ */
+async function deriveSharedSecret(
+  privateKey: PrivateKey,
+  publicKey: PublicKey
+): Promise<ArrayBuffer> {
+  // Use Signal's ECDH agreement
+  const sharedSecret = privateKey.agree(publicKey);
+  
+  // Derive AES key from shared secret using HKDF
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    sharedSecret,
+    "HKDF",
+    false,
+    ["deriveKey"]
+  );
+
+  const derivedKey = await crypto.subtle.deriveKey(
+    {
+      name: "HKDF",
+      hash: "SHA-256",
+      salt: new Uint8Array(32), // Fixed salt for deterministic key derivation
+      info: new TextEncoder().encode("SecureChat-E2EE-v1"),
+    },
+    cryptoKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+
+  return derivedKey;
+}
+
+/**
+ * Encrypt a message for a recipient using ECDH + AES-GCM
+ * Derives a shared secret from sender's private key and recipient's public key
  */
 export async function encryptMessage(
   senderUid: string,
   recipientId: string,
   plaintext: string
 ): Promise<{ type: number; body: string }> {
-  // In a real implementation, this would use SessionCipher
-  // For now, return a placeholder that will be implemented in integration phase
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plaintext);
-  const encrypted = Buffer.from(data).toString("base64");
+  try {
+    // Get sender's identity key pair
+    const senderIdentity = await getIdentityKeyPair(senderUid);
+    if (!senderIdentity) {
+      throw new Error("Sender identity not found");
+    }
 
-  return {
-    type: CiphertextMessageType.Whisper,
-    body: encrypted,
-  };
+    // Get recipient's public key from Firestore
+    const { doc: firestoreDoc, getDoc } = await import("firebase/firestore");
+    const { db } = await import("@/lib/firebase");
+    
+    const prekeyDoc = await getDoc(firestoreDoc(db, "users", recipientId, "crypto", "prekeys"));
+    if (!prekeyDoc.exists()) {
+      throw new Error("Recipient's public key not found");
+    }
+
+    const recipientBundle = prekeyDoc.data() as PrekeyBundle;
+    const recipientPublicKey = PublicKey.deserialize(
+      Buffer.from(recipientBundle.identityKey, "base64")
+    );
+
+    // Derive shared secret using ECDH
+    const sharedKey = await deriveSharedSecret(senderIdentity.privateKey, recipientPublicKey);
+
+    // Generate random IV for AES-GCM
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    // Encrypt the plaintext
+    const encoder = new TextEncoder();
+    const data = encoder.encode(plaintext);
+    const encrypted = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      sharedKey,
+      data
+    );
+
+    // Combine IV + ciphertext (NO KEY MATERIAL)
+    const combined = new Uint8Array(iv.length + encrypted.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(encrypted), iv.length);
+
+    // Convert to base64
+    const body = Buffer.from(combined).toString("base64");
+
+    return {
+      type: CiphertextMessageType.Whisper,
+      body,
+    };
+  } catch (error) {
+    console.error("Encryption failed:", error);
+    throw new Error("Failed to encrypt message");
+  }
 }
 
 /**
- * Decrypt a message from a sender
+ * Decrypt a message from a sender using ECDH + AES-GCM
+ * Derives the same shared secret from recipient's private key and sender's public key
  */
 export async function decryptMessage(
   recipientUid: string,
@@ -252,9 +322,49 @@ export async function decryptMessage(
   messageType: number,
   ciphertext: string
 ): Promise<string> {
-  // In a real implementation, this would use SessionCipher
-  // For now, return a placeholder that will be implemented in integration phase
-  const data = Buffer.from(ciphertext, "base64");
-  const decoder = new TextDecoder();
-  return decoder.decode(data);
+  try {
+    // Get recipient's identity key pair
+    const recipientIdentity = await getIdentityKeyPair(recipientUid);
+    if (!recipientIdentity) {
+      throw new Error("Recipient identity not found");
+    }
+
+    // Get sender's public key from Firestore
+    const { doc: firestoreDoc, getDoc } = await import("firebase/firestore");
+    const { db } = await import("@/lib/firebase");
+    
+    const prekeyDoc = await getDoc(firestoreDoc(db, "users", senderId, "crypto", "prekeys"));
+    if (!prekeyDoc.exists()) {
+      throw new Error("Sender's public key not found");
+    }
+
+    const senderBundle = prekeyDoc.data() as PrekeyBundle;
+    const senderPublicKey = PublicKey.deserialize(
+      Buffer.from(senderBundle.identityKey, "base64")
+    );
+
+    // Derive the same shared secret using ECDH
+    const sharedKey = await deriveSharedSecret(recipientIdentity.privateKey, senderPublicKey);
+
+    // Decode base64 ciphertext
+    const combined = Buffer.from(ciphertext, "base64");
+
+    // Extract IV and encrypted data (no key material in ciphertext)
+    const iv = combined.slice(0, 12);
+    const encrypted = combined.slice(12);
+
+    // Decrypt using derived shared secret
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      sharedKey,
+      encrypted
+    );
+
+    // Decode to string
+    const decoder = new TextDecoder();
+    return decoder.decode(decrypted);
+  } catch (error) {
+    console.error("Decryption failed:", error);
+    throw new Error("Failed to decrypt message");
+  }
 }

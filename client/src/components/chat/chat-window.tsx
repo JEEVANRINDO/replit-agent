@@ -1,12 +1,20 @@
 import { useState, useEffect, useRef } from "react";
-import { collection, query, where, orderBy, onSnapshot, addDoc } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, addDoc, getDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/auth-context";
+import { useCrypto } from "@/contexts/crypto-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Chat, DecryptedMessage } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import {
+  encryptMessage,
+  decryptMessage,
+  hasSession,
+  buildSession,
+} from "@/lib/crypto/signal-protocol";
+import type { Chat, DecryptedMessage, Message, PrekeyBundle } from "@shared/schema";
 
 interface ChatWindowProps {
   chat: Chat;
@@ -14,27 +22,55 @@ interface ChatWindowProps {
 
 export function ChatWindow({ chat }: ChatWindowProps) {
   const { currentUser } = useAuth();
+  const { initialized: cryptoInitialized } = useCrypto();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<DecryptedMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!chat.id) return;
+    if (!chat.id || !currentUser) return;
 
-    // Listen to messages in this chat
+    // Listen to encrypted messages in this chat
     const messagesQuery = query(
       collection(db, "messages"),
       where("chatId", "==", chat.id),
       orderBy("timestamp", "asc")
     );
 
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      const messageList = snapshot.docs.map(doc => ({
+    const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
+      const encryptedMessages = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-      })) as DecryptedMessage[];
+      })) as Message[];
       
-      setMessages(messageList);
+      // Decrypt messages
+      const decryptedMessages: DecryptedMessage[] = [];
+      for (const msg of encryptedMessages) {
+        try {
+          const plaintext = await decryptMessage(
+            currentUser.uid,
+            msg.senderId,
+            msg.type,
+            msg.body
+          );
+          
+          decryptedMessages.push({
+            id: msg.id,
+            chatId: msg.chatId,
+            senderId: msg.senderId,
+            recipientId: msg.recipientId,
+            text: plaintext,
+            timestamp: msg.timestamp,
+          });
+        } catch (error) {
+          console.error("Failed to decrypt message:", msg.id, error);
+          // Skip messages that fail to decrypt
+        }
+      }
+      
+      setMessages(decryptedMessages);
       setLoading(false);
 
       // Scroll to bottom on new messages
@@ -44,24 +80,70 @@ export function ChatWindow({ chat }: ChatWindowProps) {
     });
 
     return () => unsubscribe();
-  }, [chat.id]);
+  }, [chat.id, currentUser]);
 
   const handleSendMessage = async (text: string) => {
-    if (!currentUser || !text.trim()) return;
+    if (!currentUser || !text.trim() || !cryptoInitialized) return;
 
     const recipientId = chat.participants.find(p => p !== currentUser.uid);
     if (!recipientId) return;
 
-    // For now, store unencrypted (will be encrypted in Task 2)
-    const newMessage: Omit<DecryptedMessage, "id"> = {
-      chatId: chat.id,
-      senderId: currentUser.uid,
-      recipientId,
-      text: text.trim(),
-      timestamp: Date.now(),
-    };
+    setSending(true);
 
-    await addDoc(collection(db, "messages"), newMessage);
+    try {
+      // Check if session exists, if not, establish one
+      const sessionExists = await hasSession(currentUser.uid, recipientId);
+      if (!sessionExists) {
+        // Get recipient's prekey bundle from Firestore
+        const prekeyDoc = await getDoc(doc(db, "users", recipientId, "crypto", "prekeys"));
+        if (!prekeyDoc.exists()) {
+          toast({
+            variant: "destructive",
+            title: "Recipient not set up",
+            description: "The recipient hasn't set up encryption yet",
+          });
+          setSending(false);
+          return;
+        }
+
+        const recipientBundle = prekeyDoc.data() as PrekeyBundle;
+        await buildSession(currentUser.uid, recipientBundle, recipientId);
+      }
+
+      // Encrypt the message
+      const encrypted = await encryptMessage(currentUser.uid, recipientId, text.trim());
+
+      // Store encrypted message in Firestore
+      const newMessage: Omit<Message, "id"> = {
+        chatId: chat.id,
+        senderId: currentUser.uid,
+        recipientId,
+        type: encrypted.type,
+        body: encrypted.body,
+        timestamp: Date.now(),
+      };
+
+      await addDoc(collection(db, "messages"), newMessage);
+
+      // Update chat's last message
+      await updateDoc(doc(db, "chats", chat.id), {
+        lastMessage: {
+          text: text.trim().substring(0, 100), // Preview only
+          timestamp: Date.now(),
+          senderId: currentUser.uid,
+        },
+        updatedAt: Date.now(),
+      });
+    } catch (error: any) {
+      console.error("Failed to send message:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to send message",
+        description: error.message || "Could not encrypt and send message",
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -110,7 +192,7 @@ export function ChatWindow({ chat }: ChatWindowProps) {
         )}
       </ScrollArea>
 
-      <MessageInput onSend={handleSendMessage} />
+      <MessageInput onSend={handleSendMessage} disabled={sending || !cryptoInitialized} />
     </div>
   );
 }
