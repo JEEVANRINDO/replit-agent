@@ -4,7 +4,8 @@
  * All data stored in IndexedDB - never sent to server
  */
 
-import {
+import { indexedDBStore } from "./indexeddb-store";
+import type {
   IdentityKeyPair,
   PublicKey,
   PrivateKey,
@@ -13,7 +14,6 @@ import {
   SessionRecord,
   ProtocolAddress,
 } from "@signalapp/libsignal-client";
-import { indexedDBStore } from "./indexeddb-store";
 
 export class SignalProtocolStore {
   private uid: string;
@@ -28,6 +28,8 @@ export class SignalProtocolStore {
    * Initialize the store by loading identity key and registration ID
    */
   async initialize(): Promise<void> {
+    const { PublicKey, PrivateKey, IdentityKeyPair } = await import("@signalapp/libsignal-client");
+    
     // Load identity key pair
     const storedIdentity = await indexedDBStore.getIdentityKeyPair(this.uid);
     if (storedIdentity) {
@@ -43,7 +45,7 @@ export class SignalProtocolStore {
   /**
    * Get the local identity key pair
    */
-  async getIdentityKeyPair(): Promise<IdentityKeyPair> {
+  async getIdentityKeyPair() {
     if (!this.identityKeyPair) {
       throw new Error("Identity key pair not initialized");
     }
@@ -63,7 +65,9 @@ export class SignalProtocolStore {
   /**
    * Load a prekey record
    */
-  async loadPreKey(preKeyId: number): Promise<PreKeyRecord> {
+  async loadPreKey(preKeyId: number) {
+    const { PreKeyRecord, PublicKey, PrivateKey } = await import("@signalapp/libsignal-client");
+    
     const stored = await indexedDBStore.getPreKey(this.uid, preKeyId);
     if (!stored) {
       throw new Error(`PreKey ${preKeyId} not found`);
@@ -106,7 +110,9 @@ export class SignalProtocolStore {
   /**
    * Load signed prekey record
    */
-  async loadSignedPreKey(signedPreKeyId: number): Promise<SignedPreKeyRecord> {
+  async loadSignedPreKey(signedPreKeyId: number) {
+    const { SignedPreKeyRecord, PublicKey, PrivateKey } = await import("@signalapp/libsignal-client");
+    
     const stored = await indexedDBStore.getSignedPreKey(this.uid, signedPreKeyId);
     if (!stored) {
       throw new Error(`SignedPreKey ${signedPreKeyId} not found`);
@@ -150,7 +156,9 @@ export class SignalProtocolStore {
   /**
    * Load a session record by ProtocolAddress
    */
-  async loadSession(address: ProtocolAddress): Promise<SessionRecord | null> {
+  async loadSession(address: ProtocolAddress) {
+    const { SessionRecord } = await import("@signalapp/libsignal-client");
+    
     const recipientId = address.name();
     const deviceId = address.deviceId();
     
@@ -221,7 +229,7 @@ export class SignalProtocolStore {
   /**
    * Get identity
    */
-  async getIdentity(address: ProtocolAddress): Promise<PublicKey | null> {
+  async getIdentity(address: ProtocolAddress) {
     // For MVP, no separate identity cache
     return null;
   }

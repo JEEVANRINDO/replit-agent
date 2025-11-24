@@ -58,10 +58,11 @@ export async function generateSignedPreKey(
   uid: string,
   identityKeyPair: IdentityKeyPair,
   signedPreKeyId: number
-): Promise<SignedPreKeyRecord> {
+) {
+  const { IdentityKeyPair: IKP, SignedPreKeyRecord } = await import("@signalapp/libsignal-client");
   const { SignalProtocolStore } = await import("./signal-store");
   
-  const keyPair = IdentityKeyPair.generate();
+  const keyPair = IKP.generate();
   const signature = identityKeyPair.privateKey.sign(keyPair.publicKey.serialize());
   const timestamp = Date.now();
 
@@ -88,16 +89,17 @@ export async function generatePreKeys(
   uid: string,
   startId: number,
   count: number
-): Promise<PreKeyRecord[]> {
+) {
+  const { IdentityKeyPair: IKP, PreKeyRecord } = await import("@signalapp/libsignal-client");
   const { SignalProtocolStore } = await import("./signal-store");
   
-  const preKeys: PreKeyRecord[] = [];
+  const preKeys = [];
   const store = new SignalProtocolStore(uid);
   await store.initialize();
 
   for (let i = 0; i < count; i++) {
     const keyId = startId + i;
-    const keyPair = IdentityKeyPair.generate();
+    const keyPair = IKP.generate();
     
     const preKeyRecord = PreKeyRecord.new(keyId, keyPair.publicKey, keyPair.privateKey);
     preKeys.push(preKeyRecord);
@@ -116,7 +118,7 @@ export async function createPrekeyBundle(
   uid: string,
   identityKeyPair: IdentityKeyPair,
   signedPreKey: SignedPreKeyRecord,
-  preKeys: PreKeyRecord[],
+  preKeys: any[],
   registrationId: number
 ): Promise<PrekeyBundle> {
   const oneTimePreKeys = preKeys.map((pk) => ({
