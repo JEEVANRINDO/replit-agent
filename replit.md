@@ -103,15 +103,23 @@ server/
 ✅ Empty states and loading skeletons
 ✅ Encryption status indicators
 
-### To Implement
-- [ ] Signal protocol key generation (Task 2)
-- [ ] Session establishment and key exchange (Task 2)
-- [ ] Message encryption/decryption with SessionCipher (Task 2)
-- [ ] IndexedDB storage for private keys (Task 2)
-- [ ] Prekey bundle upload to Firestore (Task 2)
-- [ ] Full E2EE message flow (Task 3)
-- [ ] Key fingerprint verification UI (Task 3)
-- [ ] Firestore security rules (Task 3)
+### Implemented (Task 2 - Backend & Crypto)
+✅ WebCrypto compatibility check with error reporting
+✅ IndexedDB storage for private key material (identity, prekeys, sessions)
+✅ Signal protocol key generation (identity, signed prekey, one-time prekeys)
+✅ Prekey bundle creation and upload to Firestore
+✅ Crypto context provider for managing encryption state
+✅ Crypto initialization dialog with beautiful UI
+✅ Firestore security rules for secure data access
+✅ Session establishment scaffolding
+
+### To Implement (Task 3)
+- [ ] Full E2EE message encryption in chat window
+- [ ] Complete session establishment with SessionBuilder
+- [ ] Message decryption with SessionCipher
+- [ ] Key fingerprint verification UI
+- [ ] Error handling for crypto failures
+- [ ] Testing and architect review
 
 ## Environment Variables
 
@@ -146,7 +154,16 @@ The app follows professional messaging app design patterns:
 
 ## Recent Changes
 
-**2024-11-24**: Initial project setup
+**2024-11-24 (Task 2)**: Backend & Crypto Infrastructure
+- Implemented Signal protocol crypto layer with @signalapp/libsignal-client
+- Created IndexedDB storage for private keys and sessions
+- Built crypto context provider for key management
+- Added WebCrypto compatibility checking
+- Created beautiful crypto initialization dialog
+- Wrote Firestore security rules
+- Integrated crypto system into app flow
+
+**2024-11-24 (Task 1)**: Initial project setup
 - Created complete frontend UI with all chat components
 - Set up Firebase Authentication and Firestore
 - Implemented theme provider for dark/light mode

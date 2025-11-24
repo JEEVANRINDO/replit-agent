@@ -1,17 +1,29 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
+import { useCrypto } from "@/contexts/crypto-context";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { ChatHeader } from "@/components/chat/chat-header";
+import { CryptoInitDialog } from "@/components/crypto-init-dialog";
 import type { Chat } from "@shared/schema";
 
 export default function ChatPage() {
   const { currentUser } = useAuth();
+  const { initialized: cryptoInitialized, loading: cryptoLoading } = useCrypto();
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCryptoInit, setShowCryptoInit] = useState(false);
+
+  // Check if crypto needs to be initialized
+  useEffect(() => {
+    if (cryptoLoading) return;
+    if (!cryptoInitialized) {
+      setShowCryptoInit(true);
+    }
+  }, [cryptoInitialized, cryptoLoading]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -38,34 +50,41 @@ export default function ChatPage() {
   const selectedChat = chats.find(chat => chat.id === selectedChatId);
 
   return (
-    <div className="flex h-screen w-full bg-background">
-      <ChatSidebar
-        chats={chats}
-        selectedChatId={selectedChatId}
-        onSelectChat={setSelectedChatId}
-        loading={loading}
-      />
-      
-      <div className="flex-1 flex flex-col">
-        {selectedChat ? (
-          <>
-            <ChatHeader chat={selectedChat} />
-            <ChatWindow chat={selectedChat} />
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center space-y-3">
-              <div className="text-6xl opacity-20">💬</div>
-              <h3 className="text-xl font-semibold text-foreground">
-                Select a conversation
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Choose a chat from the sidebar to start messaging securely
-              </p>
+    <>
+      <div className="flex h-screen w-full bg-background">
+        <ChatSidebar
+          chats={chats}
+          selectedChatId={selectedChatId}
+          onSelectChat={setSelectedChatId}
+          loading={loading}
+        />
+        
+        <div className="flex-1 flex flex-col">
+          {selectedChat ? (
+            <>
+              <ChatHeader chat={selectedChat} />
+              <ChatWindow chat={selectedChat} />
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center space-y-3">
+                <div className="text-6xl opacity-20">💬</div>
+                <h3 className="text-xl font-semibold text-foreground">
+                  Select a conversation
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  Choose a chat from the sidebar to start messaging securely
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+
+      <CryptoInitDialog
+        open={showCryptoInit}
+        onComplete={() => setShowCryptoInit(false)}
+      />
+    </>
   );
 }

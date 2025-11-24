@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/contexts/theme-provider";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
+import { CryptoProvider } from "@/contexts/crypto-context";
 import AuthPage from "@/pages/auth";
 import ChatPage from "@/pages/chat";
 import NotFound from "@/pages/not-found";
@@ -70,10 +71,12 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <TooltipProvider>
-            <Router />
-            <Toaster />
-          </TooltipProvider>
+          <CryptoProvider>
+            <TooltipProvider>
+              <Router />
+              <Toaster />
+            </TooltipProvider>
+          </CryptoProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
