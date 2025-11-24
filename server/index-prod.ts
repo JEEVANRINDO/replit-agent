@@ -6,31 +6,54 @@ import express, { type Express } from "express";
 import runApp from "./app";
 
 export async function serveStatic(app: Express, _server: Server) {
-  // Try multiple possible paths for static files
+  // On Vercel, dist/ contains both index.js (server) and public/ (static files)
+  // The bundled code's import.meta.dirname points to dist/
+  // So we look for public/ relative to that, or in common locations
+  
   const possiblePaths = [
-    path.join(process.cwd(), "public"),           // Vercel deployment structure
-    path.join(process.cwd(), "dist", "public"),   // Local/Replit structure
-    path.resolve(import.meta.dirname, "public"),  // Relative to bundled server
+    // When running with npm start (dist/index.js from root)
+    path.join(process.cwd(), "dist", "public"),
+    // When bundled server's dirname is dist/
+    path.join(import.meta.dirname, "public"),
+    // Fallback - just try dist/
+    import.meta.dirname,
   ];
 
-  let distPath = possiblePaths[0];
+  let staticPath = "";
   for (const checkPath of possiblePaths) {
-    if (fs.existsSync(checkPath)) {
-      distPath = checkPath;
-      console.log(`Found static files at: ${distPath}`);
+    const indexPath = path.join(checkPath, "index.html");
+    if (fs.existsSync(indexPath)) {
+      staticPath = checkPath;
+      console.log(`✓ Found static files at: ${staticPath}`);
       break;
     }
   }
 
-  app.use(express.static(distPath));
+  if (!staticPath) {
+    // Last resort - use first path and hope it works
+    staticPath = possiblePaths[1];
+    console.log(`⚠ Using default path: ${staticPath}`);
+  }
 
-  // fall through to index.html if the file doesn't exist
+  // Serve static files
+  app.use(express.static(staticPath));
+
+  // SPA fallback - route all requests to index.html
   app.use("*", (_req, res) => {
-    const indexPath = path.resolve(distPath, "index.html");
+    const indexPath = path.join(staticPath, "index.html");
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      res.status(404).send("Not found");
+      res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>SecureChat</title></head>
+          <body>
+            <h1>SecureChat - E2EE Messaging</h1>
+            <p>App loading... If this persists, the build may be incomplete.</p>
+          </body>
+        </html>
+      `);
     }
   });
 }
