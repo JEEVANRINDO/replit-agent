@@ -1,0 +1,58 @@
+22:39:02.885 Running build in Washington, D.C., USA (East) – iad1
+22:39:02.886 Build machine configuration: 2 cores, 8 GB
+22:39:03.015 Cloning github.com/JEEVANRINDO/replit-agent (Branch: main, Commit: adbad3d)
+22:39:03.016 Previous build caches not available.
+22:39:03.203 Cloning completed: 187.000ms
+22:39:03.665 Running "vercel build"
+22:39:04.060 Vercel CLI 48.10.5
+22:39:04.653 Installing dependencies...
+22:39:09.942 npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+22:39:10.046 npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+22:39:19.365 
+22:39:19.366 added 568 packages in 14s
+22:39:19.367 
+22:39:19.367 67 packages are looking for funding
+22:39:19.368   run `npm fund` for details
+22:39:19.443 Running "npm run build"
+22:39:19.581 
+22:39:19.582 > rest-express@1.0.0 build
+22:39:19.582 > vite build && esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+22:39:19.582 
+22:39:19.841 [36mvite v5.4.20 [32mbuilding for production...[36m[39m
+22:39:19.892 transforming...
+22:39:21.467 
+22:39:21.467 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+22:39:23.913 [1m[33m[plugin:vite:resolve][39m[22m [33m[plugin vite:resolve] Module "node:buffer" has been externalized for browser compatibility, imported by "/vercel/path0/node_modules/@signalapp/libsignal-client/dist/index.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+22:39:24.013 [1m[33m[plugin:vite:resolve][39m[22m [33m[plugin vite:resolve] Module "node:buffer" has been externalized for browser compatibility, imported by "/vercel/path0/node_modules/@signalapp/libsignal-client/dist/Address.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+22:39:24.017 [1m[33m[plugin:vite:resolve][39m[22m [33m[plugin vite:resolve] Module "node:crypto" has been externalized for browser compatibility, imported by "/vercel/path0/node_modules/@signalapp/libsignal-client/dist/usernames.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+22:39:24.145 [1m[33m[plugin:vite:resolve][39m[22m [33m[plugin vite:resolve] Module "node:buffer" has been externalized for browser compatibility, imported by "/vercel/path0/node_modules/@signalapp/libsignal-client/dist/net/CDSI.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+22:39:24.149 [1m[33m[plugin:vite:resolve][39m[22m [33m[plugin vite:resolve] Module "node:buffer" has been externalized for browser compatibility, imported by "/vercel/path0/node_modules/@signalapp/libsignal-client/dist/net/chat/UnauthUsernamesService.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+22:39:24.173 [1m[33m[plugin:vite:resolve][39m[22m [33m[plugin vite:resolve] Module "fs" has been externalized for browser compatibility, imported by "/vercel/path0/node_modules/node-gyp-build/node-gyp-build.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+22:39:24.174 [1m[33m[plugin:vite:resolve][39m[22m [33m[plugin vite:resolve] Module "path" has been externalized for browser compatibility, imported by "/vercel/path0/node_modules/node-gyp-build/node-gyp-build.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+22:39:24.175 [1m[33m[plugin:vite:resolve][39m[22m [33m[plugin vite:resolve] Module "os" has been externalized for browser compatibility, imported by "/vercel/path0/node_modules/node-gyp-build/node-gyp-build.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+22:39:24.181 [1m[33m[plugin:vite:resolve][39m[22m [33m[plugin vite:resolve] Module "node:assert" has been externalized for browser compatibility, imported by "/vercel/path0/node_modules/@signalapp/libsignal-client/dist/net/FakeChat.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+22:39:24.183 [1m[33m[plugin:vite:resolve][39m[22m [33m[plugin vite:resolve] Module "node:crypto" has been externalized for browser compatibility, imported by "/vercel/path0/node_modules/@signalapp/libsignal-client/dist/AccountKeys.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+22:39:24.448 [32m✓[39m 2100 modules transformed.
+22:39:24.451 [31mx[39m Build failed in 4.59s
+22:39:24.452 [31merror during build:
+22:39:24.452 [31mnode_modules/@signalapp/libsignal-client/dist/Address.js (7:9): "Buffer" is not exported by "__vite-browser-external", imported by "node_modules/@signalapp/libsignal-client/dist/Address.js".[31m
+22:39:24.452 file: [36m/vercel/path0/node_modules/@signalapp/libsignal-client/dist/Address.js:7:9[31m
+22:39:24.452 [33m
+22:39:24.452 5: import * as Native from './Native.js';
+22:39:24.452 6: import * as uuid from 'uuid';
+22:39:24.452 7: import { Buffer } from 'node:buffer';
+22:39:24.453             ^
+22:39:24.453 8: export var ServiceIdKind;
+22:39:24.453 9: (function (ServiceIdKind) {
+22:39:24.453 [31m
+22:39:24.453     at getRollupError (file:///vercel/path0/node_modules/rollup/dist/es/shared/parseAst.js:396:41)
+22:39:24.453     at error (file:///vercel/path0/node_modules/rollup/dist/es/shared/parseAst.js:392:42)
+22:39:24.453     at Module.error (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:15588:16)
+22:39:24.453     at Module.traceVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:16037:29)
+22:39:24.453     at ModuleScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:13820:39)
+22:39:24.453     at ChildScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:5283:38)
+22:39:24.453     at ClassBodyScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:5283:38)
+22:39:24.453     at ChildScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:5283:38)
+22:39:24.453     at FunctionScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:5283:38)
+22:39:24.453     at FunctionBodyScope.findVariable (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:5283:38)[39m
+22:39:24.485 Error: Command "npm run build" exited with 1
