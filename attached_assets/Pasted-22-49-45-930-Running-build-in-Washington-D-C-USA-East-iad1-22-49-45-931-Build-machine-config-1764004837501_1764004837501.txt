@@ -1,0 +1,45 @@
+22:49:45.930 Running build in Washington, D.C., USA (East) – iad1
+22:49:45.931 Build machine configuration: 2 cores, 8 GB
+22:49:46.620 Cloning github.com/JEEVANRINDO/replit-agent (Branch: main, Commit: 850191c)
+22:49:47.043 Cloning completed: 423.000ms
+22:49:47.635 Restored build cache from previous deployment (GMb1W6DcCwChvgKuRc1HWtfi6euz)
+22:49:48.284 Running "vercel build"
+22:49:49.003 Vercel CLI 48.10.5
+22:49:49.780 Installing dependencies...
+22:49:51.169 
+22:49:51.170 up to date in 1s
+22:49:51.171 
+22:49:51.171 65 packages are looking for funding
+22:49:51.171   run `npm fund` for details
+22:49:51.203 Running "npm run build"
+22:49:51.309 
+22:49:51.309 > rest-express@1.0.0 build
+22:49:51.310 > vite build && esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+22:49:51.310 
+22:49:51.615 [36mvite v5.4.20 [32mbuilding for production...[36m[39m
+22:49:51.674 transforming...
+22:49:52.993 
+22:49:52.993 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+22:49:57.375 [32m✓[39m 2048 modules transformed.
+22:49:57.856 rendering chunks...
+22:49:57.873 computing gzip size...
+22:49:57.916 [2m../dist/public/[22m[32mindex.html                 [39m[1m[2m  2.20 kB[22m[1m[22m[2m │ gzip:   0.86 kB[22m
+22:49:57.916 [2m../dist/public/[22m[2massets/[22m[35mindex-DTFyCtV_.css  [39m[1m[2m 70.04 kB[22m[1m[22m[2m │ gzip:  11.42 kB[22m
+22:49:57.917 [2m../dist/public/[22m[2massets/[22m[36mindex-Drs_ltX4.js   [39m[1m[33m815.98 kB[39m[22m[2m │ gzip: 222.35 kB[22m
+22:49:57.920 [33m
+22:49:57.920 (!) Some chunks are larger than 500 kB after minification. Consider:
+22:49:57.921 - Using dynamic import() to code-split the application
+22:49:57.921 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+22:49:57.921 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+22:49:57.921 [32m✓ built in 6.27s[39m
+22:49:57.980 
+22:49:57.981   dist/index.js  2.5kb
+22:49:57.981 
+22:49:57.982 ⚡ Done in 7ms
+22:49:58.054 Build Completed in /vercel/output [8s]
+22:49:58.155 Deploying outputs...
+22:50:01.368 Deployment completed
+22:50:01.983 Creating build cache...
+22:50:21.451 Created build cache: 19.464s
+22:50:21.451 Uploading build cache [97.89 MB]
+22:50:23.657 Build cache uploaded: 2.207s
