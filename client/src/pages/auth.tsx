@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
-import { Lock, Mail, Shield } from "lucide-react";
+import { Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -20,6 +20,7 @@ export default function AuthPage() {
 
   const signupForm = useForm<SignupData>({
     resolver: zodResolver(signupSchema),
+    mode: "onBlur",
     defaultValues: {
       email: "",
       password: "",
@@ -29,6 +30,7 @@ export default function AuthPage() {
 
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
+    mode: "onBlur",
     defaultValues: {
       email: "",
       password: "",
@@ -40,7 +42,7 @@ export default function AuthPage() {
       await signup(data.email, data.password);
       toast({
         title: "Account created",
-        description: "Setting up your encryption keys...",
+        description: "Signing you in...",
       });
       setLocation("/");
     } catch (error: any) {
@@ -103,13 +105,13 @@ export default function AuthPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Email address</FormLabel>
                         <FormControl>
                           <Input
-                            {...field}
                             type="email"
-                            placeholder="you@example.com"
-                            data-testid="input-email"
+                            placeholder="name@example.com"
+                            autoComplete="email"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -125,10 +127,10 @@ export default function AuthPage() {
                         <FormLabel>Password</FormLabel>
                         <FormControl>
                           <Input
-                            {...field}
                             type="password"
-                            placeholder="••••••••"
-                            data-testid="input-password"
+                            placeholder="Enter password"
+                            autoComplete="new-password"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -141,13 +143,13 @@ export default function AuthPage() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
+                        <FormLabel>Confirm password</FormLabel>
                         <FormControl>
                           <Input
-                            {...field}
                             type="password"
-                            placeholder="••••••••"
-                            data-testid="input-confirm-password"
+                            placeholder="Confirm password"
+                            autoComplete="new-password"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -155,13 +157,17 @@ export default function AuthPage() {
                     )}
                   />
 
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={signupForm.formState.isSubmitting}
-                    data-testid="button-signup"
-                  >
+                  <Button type="submit" className="w-full" disabled={signupForm.formState.isSubmitting}>
                     {signupForm.formState.isSubmitting ? "Creating account..." : "Sign up"}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setIsSignup(false)}
+                  >
+                    Already have an account? Sign in
                   </Button>
                 </form>
               </Form>
@@ -173,13 +179,13 @@ export default function AuthPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Email address</FormLabel>
                         <FormControl>
                           <Input
-                            {...field}
                             type="email"
-                            placeholder="you@example.com"
-                            data-testid="input-email"
+                            placeholder="name@example.com"
+                            autoComplete="email"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -195,10 +201,10 @@ export default function AuthPage() {
                         <FormLabel>Password</FormLabel>
                         <FormControl>
                           <Input
-                            {...field}
                             type="password"
-                            placeholder="••••••••"
-                            data-testid="input-password"
+                            placeholder="Enter password"
+                            autoComplete="current-password"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -206,35 +212,26 @@ export default function AuthPage() {
                     )}
                   />
 
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={loginForm.formState.isSubmitting}
-                    data-testid="button-login"
-                  >
+                  <Button type="submit" className="w-full" disabled={loginForm.formState.isSubmitting}>
                     {loginForm.formState.isSubmitting ? "Signing in..." : "Sign in"}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setIsSignup(true)}
+                  >
+                    Don't have an account? Sign up
                   </Button>
                 </form>
               </Form>
             )}
-
-            <div className="mt-4 text-center text-sm">
-              <button
-                onClick={() => setIsSignup(!isSignup)}
-                className="text-primary hover:underline"
-                data-testid="button-toggle-auth-mode"
-              >
-                {isSignup 
-                  ? "Already have an account? Sign in" 
-                  : "Don't have an account? Sign up"}
-              </button>
-            </div>
           </CardContent>
         </Card>
 
-        <p className="text-xs text-center text-muted-foreground">
-          <Lock className="inline h-3 w-3 mr-1" />
-          Your messages are protected with end-to-end encryption using the Signal protocol
+        <p className="text-center text-xs text-muted-foreground">
+          Your messages are encrypted end-to-end. Only you and your recipients can read them.
         </p>
       </div>
     </div>
