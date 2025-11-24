@@ -5,12 +5,6 @@
 
 import { indexedDBStore } from "./indexeddb-store";
 import type { PrekeyBundle } from "@shared/schema";
-import type {
-  IdentityKeyPair,
-  PrivateKey,
-  PublicKey,
-  PreKeyBundle as SignalPreKeyBundle,
-} from "@signalapp/libsignal-client";
 
 /**
  * Generate a new identity key pair for a user
@@ -56,7 +50,7 @@ export function generateRegistrationId() {
  */
 export async function generateSignedPreKey(
   uid: string,
-  identityKeyPair: IdentityKeyPair,
+  identityKeyPair: any,
   signedPreKeyId: number
 ) {
   const { IdentityKeyPair: IKP, SignedPreKeyRecord } = await import("@signalapp/libsignal-client");
@@ -116,8 +110,8 @@ export async function generatePreKeys(
  */
 export async function createPrekeyBundle(
   uid: string,
-  identityKeyPair: IdentityKeyPair,
-  signedPreKey: SignedPreKeyRecord,
+  identityKeyPair: any,
+  signedPreKey: any,
   preKeys: any[],
   registrationId: number
 ): Promise<PrekeyBundle> {
@@ -178,7 +172,8 @@ export async function buildSession(
   recipientId: string
 ): Promise<void> {
   const { SignalProtocolStore } = await import("./signal-store");
-  const { SessionBuilder, PreKeyBundle, PublicKey, ProtocolAddress } = await import("@signalapp/libsignal-client");
+  const lib = await import("@signalapp/libsignal-client");
+  const { SessionBuilder, PreKeyBundle, PublicKey, ProtocolAddress } = lib;
 
   // Initialize store
   const store = new SignalProtocolStore(senderUid);
@@ -252,7 +247,8 @@ export async function encryptMessage(
   plaintext: string
 ): Promise<{ type: number; body: string }> {
   const { SignalProtocolStore } = await import("./signal-store");
-  const { SessionCipher, ProtocolAddress } = await import("@signalapp/libsignal-client");
+  const lib = await import("@signalapp/libsignal-client");
+  const { SessionCipher, ProtocolAddress } = lib;
 
   try {
     // Initialize store
@@ -294,7 +290,8 @@ export async function decryptMessage(
   ciphertext: string
 ): Promise<string> {
   const { SignalProtocolStore } = await import("./signal-store");
-  const { SessionCipher, CiphertextMessageType, PreKeySignalMessage, SignalMessage, ProtocolAddress } = await import("@signalapp/libsignal-client");
+  const lib = await import("@signalapp/libsignal-client");
+  const { SessionCipher, CiphertextMessageType, PreKeySignalMessage, SignalMessage, ProtocolAddress } = lib;
 
   try {
     // Initialize store
