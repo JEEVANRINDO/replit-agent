@@ -5,19 +5,10 @@
  */
 
 import { indexedDBStore } from "./indexeddb-store";
-import type {
-  IdentityKeyPair,
-  PublicKey,
-  PrivateKey,
-  PreKeyRecord,
-  SignedPreKeyRecord,
-  SessionRecord,
-  ProtocolAddress,
-} from "@signalapp/libsignal-client";
 
 export class SignalProtocolStore {
   private uid: string;
-  private identityKeyPair: IdentityKeyPair | null = null;
+  private identityKeyPair: any = null;
   private registrationId: number | null = null;
 
   constructor(uid: string) {
@@ -82,7 +73,7 @@ export class SignalProtocolStore {
   /**
    * Store a prekey record
    */
-  async storePreKey(preKeyId: number, record: PreKeyRecord): Promise<void> {
+  async storePreKey(preKeyId: number, record: any): Promise<void> {
     await indexedDBStore.storePreKey(this.uid, {
       keyId: preKeyId,
       keyPair: {
@@ -133,7 +124,7 @@ export class SignalProtocolStore {
   /**
    * Store signed prekey record
    */
-  async storeSignedPreKey(signedPreKeyId: number, record: SignedPreKeyRecord): Promise<void> {
+  async storeSignedPreKey(signedPreKeyId: number, record: any): Promise<void> {
     await indexedDBStore.storeSignedPreKey(this.uid, {
       keyId: signedPreKeyId,
       keyPair: {
@@ -156,7 +147,7 @@ export class SignalProtocolStore {
   /**
    * Load a session record by ProtocolAddress
    */
-  async loadSession(address: ProtocolAddress) {
+  async loadSession(address: any) {
     const { SessionRecord } = await import("@signalapp/libsignal-client");
     
     const recipientId = address.name();
@@ -178,7 +169,7 @@ export class SignalProtocolStore {
   /**
    * Store a session record by ProtocolAddress
    */
-  async storeSession(address: ProtocolAddress, record: SessionRecord): Promise<void> {
+  async storeSession(address: any, record: any): Promise<void> {
     const recipientId = address.name();
     const deviceId = address.deviceId();
     const serialized = record.serialize();
@@ -193,7 +184,7 @@ export class SignalProtocolStore {
   /**
    * Check if a session exists by ProtocolAddress
    */
-  async containsSession(address: ProtocolAddress): Promise<boolean> {
+  async containsSession(address: any): Promise<boolean> {
     const session = await this.loadSession(address);
     return session !== null && session.hasCurrentState();
   }
@@ -201,7 +192,7 @@ export class SignalProtocolStore {
   /**
    * Remove a session by ProtocolAddress
    */
-  async removeSession(address: ProtocolAddress): Promise<void> {
+  async removeSession(address: any): Promise<void> {
     const recipientId = address.name();
     const deviceId = address.deviceId();
     await indexedDBStore.removeSession(this.uid, recipientId, deviceId);
@@ -210,27 +201,21 @@ export class SignalProtocolStore {
   /**
    * Save identity
    */
-  async saveIdentity(address: ProtocolAddress, identityKey: PublicKey): Promise<boolean> {
-    // For MVP, trust on first use
+  async saveIdentity(address: any, identityKey: any): Promise<boolean> {
     return true;
   }
 
   /**
    * Check if identity is trusted
    */
-  async isTrustedIdentity(
-    address: ProtocolAddress,
-    identityKey: PublicKey
-  ): Promise<boolean> {
-    // For MVP, trust all identities
+  async isTrustedIdentity(address: any, identityKey: any): Promise<boolean> {
     return true;
   }
 
   /**
    * Get identity
    */
-  async getIdentity(address: ProtocolAddress) {
-    // For MVP, no separate identity cache
+  async getIdentity(address: any) {
     return null;
   }
 }

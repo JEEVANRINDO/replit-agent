@@ -1,10 +1,16 @@
 // Polyfill for libsignal-client browser compatibility
-if (typeof window !== "undefined" && !window.process) {
-  (window as any).process = {
-    env: {},
-    versions: { node: "" },
-    platform: "browser",
-  };
+if (typeof globalThis !== "undefined") {
+  if (!globalThis.process) {
+    (globalThis as any).process = {
+      env: {},
+      versions: { node: "" },
+      platform: "browser",
+    };
+  }
+  if (!globalThis.Buffer && typeof window !== "undefined") {
+    const buffer = require("buffer");
+    (globalThis as any).Buffer = buffer.Buffer;
+  }
 }
 
 import { createRoot } from "react-dom/client";

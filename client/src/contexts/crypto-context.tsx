@@ -88,8 +88,12 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
           setInitialized(true);
         } else {
           // Check if prekey bundle exists in Firestore (backup check)
-          const prekeyDoc = await getDoc(doc(db, "users", currentUser.uid, "crypto", "prekeys"));
-          setInitialized(prekeyDoc.exists());
+          try {
+            const prekeyDoc = await getDoc(doc(db, "users", currentUser.uid, "crypto", "prekeys"));
+            setInitialized(prekeyDoc.exists());
+          } catch {
+            setInitialized(false);
+          }
         }
       } catch (error) {
         console.error("Error checking crypto initialization:", error);
