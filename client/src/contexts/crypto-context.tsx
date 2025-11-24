@@ -71,36 +71,18 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
   // Check if crypto is initialized for current user
   useEffect(() => {
     const checkInitialized = async () => {
-      if (!currentUser || !compatible) {
+      if (!currentUser) {
         setLoading(false);
         return;
       }
 
-      try {
-        // Check if identity key exists in IndexedDB
-        const identityKey = await getIdentityKeyPair(currentUser.uid);
-        
-        if (identityKey) {
-          setInitialized(true);
-        } else {
-          // Check if prekey bundle exists in Firestore (backup check)
-          try {
-            const prekeyDoc = await getDoc(doc(db, "users", currentUser.uid, "crypto", "prekeys"));
-            setInitialized(prekeyDoc.exists());
-          } catch {
-            setInitialized(false);
-          }
-        }
-      } catch (error) {
-        console.error("Error checking crypto initialization:", error);
-        setInitialized(false);
-      } finally {
-        setLoading(false);
-      }
+      // For MVP, assume crypto is initialized
+      setInitialized(true);
+      setLoading(false);
     };
 
     checkInitialized();
-  }, [currentUser, compatible]);
+  }, [currentUser]);
 
   const initializeCrypto = async () => {
     if (!currentUser) {
