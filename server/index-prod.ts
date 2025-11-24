@@ -6,21 +6,32 @@ import express, { type Express } from "express";
 import runApp from "./app";
 
 export async function serveStatic(app: Express, _server: Server) {
-  // In production, static files are in ./public relative to cwd
-  // Vite builds to dist/public, and esbuild bundles server to dist/index.js
-  const distPath = path.join(process.cwd(), "public");
+  // Try multiple possible paths for static files
+  const possiblePaths = [
+    path.join(process.cwd(), "public"),           // Vercel deployment structure
+    path.join(process.cwd(), "dist", "public"),   // Local/Replit structure
+    path.resolve(import.meta.dirname, "public"),  // Relative to bundled server
+  ];
 
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
+  let distPath = possiblePaths[0];
+  for (const checkPath of possiblePaths) {
+    if (fs.existsSync(checkPath)) {
+      distPath = checkPath;
+      console.log(`Found static files at: ${distPath}`);
+      break;
+    }
   }
 
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    const indexPath = path.resolve(distPath, "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send("Not found");
+    }
   });
 }
 
