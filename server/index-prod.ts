@@ -6,7 +6,9 @@ import express, { type Express } from "express";
 import runApp from "./app";
 
 export async function serveStatic(app: Express, _server: Server) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  // In production, static files are in ./public relative to cwd
+  // Vite builds to dist/public, and esbuild bundles server to dist/index.js
+  const distPath = path.join(process.cwd(), "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
