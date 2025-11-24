@@ -11,7 +11,7 @@ import {
   PreKeyRecord,
   SignedPreKeyRecord,
   SessionRecord,
-  Direction,
+  ProtocolAddress,
 } from "@signalapp/libsignal-client";
 import { indexedDBStore } from "./indexeddb-store";
 
@@ -61,30 +61,7 @@ export class SignalProtocolStore {
   }
 
   /**
-   * Save identity (for recipient verification)
-   */
-  async saveIdentity(address: string, identityKey: PublicKey): Promise<boolean> {
-    // For simplicity in MVP, we trust on first use (TOFU)
-    // In production, this should verify against stored keys
-    console.log(`Saving identity for ${address}`);
-    return true;
-  }
-
-  /**
-   * Check if an identity is trusted
-   */
-  async isTrustedIdentity(
-    address: string,
-    identityKey: PublicKey,
-    direction: Direction
-  ): Promise<boolean> {
-    // For MVP, trust all identities
-    // In production, implement proper identity verification
-    return true;
-  }
-
-  /**
-   * Load a prekey record (required by libsignal-client)
+   * Load a prekey record
    */
   async loadPreKey(preKeyId: number): Promise<PreKeyRecord> {
     const stored = await indexedDBStore.getPreKey(this.uid, preKeyId);
@@ -99,7 +76,7 @@ export class SignalProtocolStore {
   }
 
   /**
-   * Store a prekey record (required by libsignal-client)
+   * Store a prekey record
    */
   async storePreKey(preKeyId: number, record: PreKeyRecord): Promise<void> {
     await indexedDBStore.storePreKey(this.uid, {
@@ -112,7 +89,7 @@ export class SignalProtocolStore {
   }
 
   /**
-   * Check if prekey exists (required by libsignal-client)
+   * Check if prekey exists
    */
   async containsPreKey(preKeyId: number): Promise<boolean> {
     const stored = await indexedDBStore.getPreKey(this.uid, preKeyId);
@@ -120,14 +97,14 @@ export class SignalProtocolStore {
   }
 
   /**
-   * Remove a used prekey (required by libsignal-client)
+   * Remove a used prekey
    */
   async removePreKey(preKeyId: number): Promise<void> {
     await indexedDBStore.removePreKey(this.uid, preKeyId);
   }
 
   /**
-   * Load signed prekey record (required by libsignal-client)
+   * Load signed prekey record
    */
   async loadSignedPreKey(signedPreKeyId: number): Promise<SignedPreKeyRecord> {
     const stored = await indexedDBStore.getSignedPreKey(this.uid, signedPreKeyId);
@@ -148,7 +125,7 @@ export class SignalProtocolStore {
   }
 
   /**
-   * Store signed prekey record (required by libsignal-client)
+   * Store signed prekey record
    */
   async storeSignedPreKey(signedPreKeyId: number, record: SignedPreKeyRecord): Promise<void> {
     await indexedDBStore.storeSignedPreKey(this.uid, {
@@ -163,7 +140,7 @@ export class SignalProtocolStore {
   }
 
   /**
-   * Check if signed prekey exists (required by libsignal-client)
+   * Check if signed prekey exists
    */
   async containsSignedPreKey(signedPreKeyId: number): Promise<boolean> {
     const stored = await indexedDBStore.getSignedPreKey(this.uid, signedPreKeyId);
@@ -171,10 +148,13 @@ export class SignalProtocolStore {
   }
 
   /**
-   * Load a session record
+   * Load a session record by ProtocolAddress
    */
-  async loadSession(address: string, deviceId: number = 1): Promise<SessionRecord | null> {
-    const stored = await indexedDBStore.getSession(this.uid, address, deviceId);
+  async loadSession(address: ProtocolAddress): Promise<SessionRecord | null> {
+    const recipientId = address.name();
+    const deviceId = address.deviceId();
+    
+    const stored = await indexedDBStore.getSession(this.uid, recipientId, deviceId);
     if (!stored || !stored.record || stored.record.byteLength === 0) {
       return null;
     }
@@ -188,39 +168,61 @@ export class SignalProtocolStore {
   }
 
   /**
-   * Store a session record (required by libsignal-client)
+   * Store a session record by ProtocolAddress
    */
-  async storeSession(address: string, record: SessionRecord, deviceId: number = 1): Promise<void> {
+  async storeSession(address: ProtocolAddress, record: SessionRecord): Promise<void> {
+    const recipientId = address.name();
+    const deviceId = address.deviceId();
     const serialized = record.serialize();
     
     await indexedDBStore.storeSession(this.uid, {
-      recipientId: address,
+      recipientId,
       deviceId,
       record: serialized,
     });
   }
 
   /**
-   * Check if a session exists (required by libsignal-client)
+   * Check if a session exists by ProtocolAddress
    */
-  async containsSession(address: string, deviceId: number = 1): Promise<boolean> {
-    const session = await this.loadSession(address, deviceId);
+  async containsSession(address: ProtocolAddress): Promise<boolean> {
+    const session = await this.loadSession(address);
     return session !== null && session.hasCurrentState();
   }
 
   /**
-   * Remove a session (required by libsignal-client)
+   * Remove a session by ProtocolAddress
    */
-  async removeSession(address: string, deviceId: number = 1): Promise<void> {
-    await indexedDBStore.removeSession(this.uid, address, deviceId);
+  async removeSession(address: ProtocolAddress): Promise<void> {
+    const recipientId = address.name();
+    const deviceId = address.deviceId();
+    await indexedDBStore.removeSession(this.uid, recipientId, deviceId);
   }
 
   /**
-   * Get identity for address (required by libsignal-client)
+   * Save identity
    */
-  async getIdentity(address: string): Promise<PublicKey | null> {
-    // For MVP, we don't cache identities separately
-    // In production, this should maintain a trust store
+  async saveIdentity(address: ProtocolAddress, identityKey: PublicKey): Promise<boolean> {
+    // For MVP, trust on first use
+    return true;
+  }
+
+  /**
+   * Check if identity is trusted
+   */
+  async isTrustedIdentity(
+    address: ProtocolAddress,
+    identityKey: PublicKey
+  ): Promise<boolean> {
+    // For MVP, trust all identities
+    return true;
+  }
+
+  /**
+   * Get identity
+   */
+  async getIdentity(address: ProtocolAddress): Promise<PublicKey | null> {
+    // For MVP, no separate identity cache
     return null;
   }
 }

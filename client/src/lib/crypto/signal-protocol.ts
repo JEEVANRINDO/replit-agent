@@ -181,7 +181,7 @@ export async function buildSession(
   recipientId: string
 ): Promise<void> {
   const { SignalProtocolStore } = await import("./signal-store");
-  const { SessionBuilder, PreKeyBundle, PublicKey } = await import("@signalapp/libsignal-client");
+  const { SessionBuilder, PreKeyBundle, PublicKey, ProtocolAddress } = await import("@signalapp/libsignal-client");
 
   // Initialize store
   const store = new SignalProtocolStore(senderUid);
@@ -218,15 +218,11 @@ export async function buildSession(
     identityKey
   );
 
-  // Use SessionBuilder to process the bundle
-  const builder = SessionBuilder.new(
-    store as any, // Type assertion for compatibility
-    {
-      name: recipientId,
-      deviceId: 1,
-    }
-  );
+  // Create ProtocolAddress for recipient
+  const recipientAddress = ProtocolAddress.new(recipientId, 1);
 
+  // Use SessionBuilder to process the bundle
+  const builder = SessionBuilder.new(store as any, recipientAddress);
   await builder.processPreKeyBundle(preKeyBundle);
 
   console.log("Session established with:", recipientId);
@@ -240,11 +236,13 @@ export async function hasSession(
   recipientId: string
 ): Promise<boolean> {
   const { SignalProtocolStore } = await import("./signal-store");
+  const { ProtocolAddress } = await import("@signalapp/libsignal-client");
   
   const store = new SignalProtocolStore(uid);
   await store.initialize();
   
-  return await store.containsSession(recipientId, 1);
+  const address = ProtocolAddress.new(recipientId, 1);
+  return await store.containsSession(address);
 }
 
 /**
@@ -257,21 +255,18 @@ export async function encryptMessage(
   plaintext: string
 ): Promise<{ type: number; body: string }> {
   const { SignalProtocolStore } = await import("./signal-store");
-  const { SessionCipher } = await import("@signalapp/libsignal-client");
+  const { SessionCipher, ProtocolAddress } = await import("@signalapp/libsignal-client");
 
   try {
     // Initialize store
     const store = new SignalProtocolStore(senderUid);
     await store.initialize();
 
+    // Create ProtocolAddress for recipient
+    const recipientAddress = ProtocolAddress.new(recipientId, 1);
+
     // Create SessionCipher
-    const cipher = SessionCipher.new(
-      store as any,
-      {
-        name: recipientId,
-        deviceId: 1,
-      }
-    );
+    const cipher = SessionCipher.new(store as any, recipientAddress);
 
     // Encrypt the message
     const encoder = new TextEncoder();
@@ -302,21 +297,18 @@ export async function decryptMessage(
   ciphertext: string
 ): Promise<string> {
   const { SignalProtocolStore } = await import("./signal-store");
-  const { SessionCipher, CiphertextMessageType, PreKeySignalMessage, SignalMessage } = await import("@signalapp/libsignal-client");
+  const { SessionCipher, CiphertextMessageType, PreKeySignalMessage, SignalMessage, ProtocolAddress } = await import("@signalapp/libsignal-client");
 
   try {
     // Initialize store
     const store = new SignalProtocolStore(recipientUid);
     await store.initialize();
 
+    // Create ProtocolAddress for sender
+    const senderAddress = ProtocolAddress.new(senderId, 1);
+
     // Create SessionCipher
-    const cipher = SessionCipher.new(
-      store as any,
-      {
-        name: senderId,
-        deviceId: 1,
-      }
-    );
+    const cipher = SessionCipher.new(store as any, senderAddress);
 
     // Deserialize ciphertext
     const ciphertextBytes = Buffer.from(ciphertext, "base64");
