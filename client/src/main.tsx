@@ -7,10 +7,6 @@ if (typeof globalThis !== "undefined") {
       platform: "browser",
     };
   }
-  if (!globalThis.Buffer && typeof window !== "undefined") {
-    const buffer = require("buffer");
-    (globalThis as any).Buffer = buffer.Buffer;
-  }
 }
 
 import { createRoot } from "react-dom/client";
