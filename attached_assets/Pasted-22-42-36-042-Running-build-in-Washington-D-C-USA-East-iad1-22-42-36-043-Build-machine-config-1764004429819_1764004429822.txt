@@ -1,0 +1,41 @@
+22:42:36.042 Running build in Washington, D.C., USA (East) – iad1
+22:42:36.043 Build machine configuration: 2 cores, 8 GB
+22:42:36.170 Cloning github.com/JEEVANRINDO/replit-agent (Branch: main, Commit: 416a9f7)
+22:42:36.171 Previous build caches not available.
+22:42:36.371 Cloning completed: 201.000ms
+22:42:36.738 Running "vercel build"
+22:42:37.145 Vercel CLI 48.10.5
+22:42:37.816 Installing dependencies...
+22:42:42.978 npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+22:42:43.076 npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+22:42:51.359 
+22:42:51.360 added 565 packages in 13s
+22:42:51.360 
+22:42:51.361 65 packages are looking for funding
+22:42:51.361   run `npm fund` for details
+22:42:51.433 Running "npm run build"
+22:42:51.545 
+22:42:51.545 > rest-express@1.0.0 build
+22:42:51.545 > vite build && esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+22:42:51.546 
+22:42:51.813 [36mvite v5.4.20 [32mbuilding for production...[36m[39m
+22:42:51.866 transforming...
+22:42:53.106 
+22:42:53.108 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+22:42:55.491 [32m✓[39m 1681 modules transformed.
+22:42:55.497 [31mx[39m Build failed in 3.66s
+22:42:55.497 [31merror during build:
+22:42:55.497 [31m[vite]: Rollup failed to resolve import "@signalapp/libsignal-client" from "/vercel/path0/client/src/lib/crypto/signal-protocol.ts".
+22:42:55.498 This is most likely unintended because it can break your application at runtime.
+22:42:55.498 If you do want to externalize this module explicitly add it to
+22:42:55.498 `build.rollupOptions.external`[31m
+22:42:55.498     at viteWarn (file:///vercel/path0/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:65854:17)
+22:42:55.498     at onwarn (file:///vercel/path0/node_modules/@vitejs/plugin-react/dist/index.js:90:7)
+22:42:55.498     at onRollupWarning (file:///vercel/path0/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:65884:5)
+22:42:55.498     at onwarn (file:///vercel/path0/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:65549:7)
+22:42:55.499     at file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:19452:13
+22:42:55.499     at Object.logger [as onLog] (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:21178:9)
+22:42:55.499     at ModuleLoader.handleInvalidResolvedId (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:20067:26)
+22:42:55.499     at ModuleLoader.resolveDynamicImport (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:20125:58)
+22:42:55.500     at async file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:20013:32[39m
+22:42:55.523 Error: Command "npm run build" exited with 1
