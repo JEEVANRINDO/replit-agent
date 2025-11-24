@@ -3,26 +3,20 @@
  * Handles key generation, session establishment, and message encryption/decryption
  */
 
-import {
+import { indexedDBStore } from "./indexeddb-store";
+import type { PrekeyBundle } from "@shared/schema";
+import type {
   IdentityKeyPair,
   PrivateKey,
   PublicKey,
-  PreKeyBundle,
-  PreKeyRecord,
-  SignedPreKeyRecord,
-  SessionBuilder,
-  SessionCipher,
-  signalEncrypt,
-  signalDecrypt,
-  CiphertextMessageType,
+  PreKeyBundle as SignalPreKeyBundle,
 } from "@signalapp/libsignal-client";
-import { indexedDBStore } from "./indexeddb-store";
-import type { PrekeyBundle } from "@shared/schema";
 
 /**
  * Generate a new identity key pair for a user
  */
-export async function generateIdentityKeyPair(uid: string): Promise<IdentityKeyPair> {
+export async function generateIdentityKeyPair(uid: string) {
+  const { IdentityKeyPair } = await import("@signalapp/libsignal-client");
   const identityKeyPair = IdentityKeyPair.generate();
   
   // Store in IndexedDB
@@ -37,7 +31,8 @@ export async function generateIdentityKeyPair(uid: string): Promise<IdentityKeyP
 /**
  * Get stored identity key pair
  */
-export async function getIdentityKeyPair(uid: string): Promise<IdentityKeyPair | null> {
+export async function getIdentityKeyPair(uid: string) {
+  const { PublicKey, PrivateKey, IdentityKeyPair } = await import("@signalapp/libsignal-client");
   const stored = await indexedDBStore.getIdentityKeyPair(uid);
   if (!stored) return null;
 
@@ -50,7 +45,7 @@ export async function getIdentityKeyPair(uid: string): Promise<IdentityKeyPair |
 /**
  * Generate a registration ID (random 32-bit integer)
  */
-export function generateRegistrationId(): number {
+export function generateRegistrationId() {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
   return array[0] & 0x3fff; // 14 bits
