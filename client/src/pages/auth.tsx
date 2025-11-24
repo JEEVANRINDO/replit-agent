@@ -105,16 +105,12 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input
-                              {...field}
-                              type="email"
-                              placeholder="you@example.com"
-                              className="pl-10"
-                              data-testid="input-email"
-                            />
-                          </div>
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="you@example.com"
+                            data-testid="input-email"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -128,16 +124,12 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input
-                              {...field}
-                              type="password"
-                              placeholder="••••••••"
-                              className="pl-10"
-                              data-testid="input-password"
-                            />
-                          </div>
+                          <Input
+                            {...field}
+                            type="password"
+                            placeholder="••••••••"
+                            data-testid="input-password"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -151,16 +143,12 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input
-                              {...field}
-                              type="password"
-                              placeholder="••••••••"
-                              className="pl-10"
-                              data-testid="input-confirm-password"
-                            />
-                          </div>
+                          <Input
+                            {...field}
+                            type="password"
+                            placeholder="••••••••"
+                            data-testid="input-confirm-password"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -187,16 +175,12 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input
-                              {...field}
-                              type="email"
-                              placeholder="you@example.com"
-                              className="pl-10"
-                              data-testid="input-email"
-                            />
-                          </div>
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="you@example.com"
+                            data-testid="input-email"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -210,16 +194,12 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input
-                              {...field}
-                              type="password"
-                              placeholder="••••••••"
-                              className="pl-10"
-                              data-testid="input-password"
-                            />
-                          </div>
+                          <Input
+                            {...field}
+                            type="password"
+                            placeholder="••••••••"
+                            data-testid="input-password"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
