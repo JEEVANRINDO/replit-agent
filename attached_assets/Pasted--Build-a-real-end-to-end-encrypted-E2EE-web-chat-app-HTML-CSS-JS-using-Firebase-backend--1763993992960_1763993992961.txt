@@ -1,0 +1,114 @@
+# Build a **real** end-to-end encrypted (E2EE) web chat app (HTML/CSS/JS) using Firebase backend  
+## Professional Roadmap → Module-by-Module → Verified → Final Integration
+
+**Important overall rule:** Use **libsignal-protocol-typescript** exclusively for all E2EE functionality. No fallback libraries or fallback runnable code allowed. If `libsignal-protocol-typescript` cannot run in the target environment (missing WebCrypto, incompatible browser, etc.), the generator must not produce runnable app code — instead produce only the alternative architecture proposals (ideas-only) and an explicit environment-compatibility report explaining why the library cannot run.
+
+---
+
+## 0) High-level Plan (required before any code)
+Before generating files, produce a concise project plan (one page) that lists:
+- Objectives & scope (1:1 chat only, Firebase backend, Signal ratchet via `libsignal-protocol-typescript`)
+- Deliverables (list of files, build artifacts, docs)
+- Phases, with estimated developer actions (no duration estimates required, but order must be explicit)
+- Acceptance criteria for each phase (clear PASS/FAIL tests)
+- Rollback / mitigation plan for crypto-related failures
+
+The generator must output this plan first, as plain text, before any code.
+
+---
+
+## 1) Roadmap — Phases & Order (must follow)
+1. Environment & prerequisites check  
+   - Verify browser WebCrypto availability, required browser versions, bundler/runtime constraints.  
+   - If incompatible, stop and produce architecture proposals only.
+
+2. Project scaffolding  
+   - package.json, bundler config, basic index.html, firebase-config.js (placeholder).
+
+3. Authentication & Firestore basics  
+   - Implement Firebase Auth (signup/signin) and simple Firestore read/write.  
+   - Unit test: sign-up, sign-in, write/read one public document.
+
+4. Crypto primitives & storage (Signal client setup)  
+   - Implement key generation (identity, signed prekey, multiple one-time prekeys) and client-side persistent storage (IndexedDB).  
+   - Unit test: generate keys → read back from IndexedDB → compute fingerprint.
+
+5. Prekey bundle registration  
+   - Upload only public key material to Firestore under `/users/{uid}/prekeys`.  
+   - Unit test: confirm uploaded documents contain only public fields (no private key bytes).
+
+6. Session establishment (pairwise)  
+   - Implement SessionBuilder using recipient’s public bundle; create session state locally.  
+   - Unit test: simulate Alice building session with Bob’s bundle and verify session exists locally.
+
+7. Message encryption/decryption flow  
+   - Sender: encrypt with SessionCipher and push ciphertext to `/chats/{chatId}/messages`.  
+   - Recipient: listen, decrypt, display.  
+   - Unit test: two browser sessions (or simulated instance) exchange a short message and both decrypt successfully.
+
+8. UI & polish (minimal usable UI)  
+   - Chat list, message view, key fingerprint display, "refresh prekeys" button.  
+   - Acceptance test: manual UX checklist (login, register, create chat, exchange messages).
+
+9. Firestore security rules & audit  
+   - Provide `firestore.rules` that allow only authenticated public prekey writes and ciphertext reads by participants.  
+   - Test: attempt unauthorized read/write should be blocked.
+
+10. Build, docs, SECURITY.md, README, deploy instructions  
+    - Include instructions for pasting Firebase config, build steps, how to verify E2EE.
+
+11. Final integration & end-to-end QA  
+    - Run full scenario with two fresh browser sessions, confirm all acceptance tests pass, and show Firestore entries containing only ciphertext.
+
+---
+
+## 2) Module Acceptance Criteria (for each module)
+For each module produced, include a short "Acceptance Criteria" block that lists PASS conditions (what to verify) and FAIL conditions (what breaks). Example for Prekey registration:
+- PASS: IndexedDB contains private keys; Firestore `/users/{uid}/prekeys` contains only public keys; no private material uploaded.  
+- FAIL: Any stored Firestore document includes a field resembling a private key or session secret.
+
+Each source file must include inline comments pointing to relevant acceptance criteria and which test verifies them.
+
+---
+
+## 3) Tests & Verification (must be included)
+- Provide automated or manual test steps for each module (e.g., JS test snippet or clear manual steps to run in console).  
+- Provide a reproducible two-session test: Step-by-step to create Alice and Bob, exchange messages, confirm both decrypt, and show that Firestore only stores ciphertext. Include sample console logs showing session fingerprints.
+
+---
+
+## 4) Integration Checklist (before final delivery)
+Before merging modules, perform:
+- Lint & build pass (`npm run build` success).  
+- Crypto environment check success (WebCrypto present).  
+- Key generation & persistence validated.  
+- Prekey upload schema validated.  
+- Session build & message exchange validated between two independent browser contexts.  
+- Firestore rules tested for unauthorized access.  
+- SECURITY.md and README present.
+
+If any checklist item fails, the generator must stop and print diagnostic output explaining the failure and suggested fixes.
+
+---
+
+## 5) Developer ergonomics & delivery format (how to output)
+- First output: the Plan (see section 0). Then for each module, output files with their filenames as headings and contents in code blocks.  
+- For each module include: purpose, acceptance criteria, and test steps above the file listing.  
+- Keep code modular and commented. Minimal UI is fine — correctness prioritized.
+
+---
+
+## 6) Strict E2EE & No fallback rule (repeated)
+- Use **libsignal-protocol-typescript** only. No fallback runnable code allowed. If incompatibility occurs, stop and produce architecture proposal ideas-only plus environment compatibility report.
+
+---
+
+## 7) Required placeholders & output format (same as before)
+Include `firebase-config.js` placeholder exactly as below:
+
+```js
+// firebase-config.js
+// Paste your Firebase web config object into FIREBASE_CONFIG below.
+// Example: const FIREBASE_CONFIG = { apiKey: "...", authDomain: "...", projectId: "...", ... }
+const FIREBASE_CONFIG = /* FIREBASE_CONFIG_PLACEHOLDER */ null;
+export default FIREBASE_CONFIG;
